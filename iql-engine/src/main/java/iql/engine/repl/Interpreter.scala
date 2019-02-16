@@ -6,17 +6,23 @@ import org.json4s.JObject
 
 
 object Interpreter {
+
   abstract class ExecuteResponse
 
   case class ExecuteSuccess(content: JObject) extends ExecuteResponse
+
   case class ExecuteError(ename: String,
                           evalue: String,
                           traceback: Seq[String] = Seq()) extends ExecuteResponse
+
   case class ExecuteIncomplete() extends ExecuteResponse
+
   case class ExecuteAborted(message: String) extends ExecuteResponse
+
 }
 
 trait Interpreter {
+
   import Interpreter._
 
   /**

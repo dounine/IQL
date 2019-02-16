@@ -26,8 +26,8 @@ public class AkkaUtils {
         }
         Seq<Bean.IQLEngine> allEngineInCluster = ZkUtils.getAllEngineInCluster(zkClient);
         Iterator<Bean.IQLEngine> iterator = allEngineInCluster.iterator();
-        List ids = new ArrayList<Integer>();
-        List ports = new ArrayList<Integer>();
+        List<Integer> ids = new ArrayList<Integer>();
+        List<Integer> ports = new ArrayList<Integer>();
         while (iterator.hasNext()){
             Bean.IQLEngine engine = iterator.next();
             ids.add(engine.engineId());

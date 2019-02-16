@@ -23,6 +23,7 @@ class DataFrameFunctions(data: DataFrame) extends Logging with Serializable {
       val hc = HBaseConfiguration.create()
       hc.set("hbase.zookeeper.quorum", zkUrl.getOrElse("localhost:2181"))
       hc.set("hbase.client.keyvalue.maxsize", "104857600")
+
       options.foreach(p => hc.set(p._1, p._2))
       data.sparkSession.sparkContext.getConf.getAll
         .filter(_._1.toLowerCase.contains("hbase"))

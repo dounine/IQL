@@ -60,7 +60,6 @@ class DefaultSource extends CreatableRelationProvider
     val options = new JDBCOptions(parameters)
     val isCaseSensitive = sqlContext.conf.caseSensitiveAnalysis
 
-
     var saveMode = mode match {
       case SaveMode.Overwrite => IQLSaveMode.Overwrite
       case SaveMode.Append => IQLSaveMode.Append

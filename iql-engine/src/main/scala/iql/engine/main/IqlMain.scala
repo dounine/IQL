@@ -7,6 +7,8 @@ import iql.engine.config.IQL_PARALLELISM
 import iql.engine.{ExeActor, IQLSession}
 import iql.engine.repl.SparkInterpreter
 import iql.engine.utils.PropsUtils
+import org.apache.hadoop.hbase.HBaseConfiguration
+import org.apache.hadoop.security.UserGroupInformation
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 
@@ -20,25 +22,28 @@ object IqlMain extends Logging {
             .appName("IQL")
             .config(sparkConf)
             //动态资源调整
+            .config("spark.shuffle.service.enabled", "true")
             .config("spark.dynamicAllocation.enabled", "true")
             .config("spark.dynamicAllocation.executorIdleTimeout", "30s")
-            .config("spark.dynamicAllocation.maxExecutors", "100")
-            .config("spark.dynamicAllocation.minExecutors", "0")
+            .config("spark.dynamicAllocation.maxExecutors", "3")
+            .config("spark.dynamicAllocation.minExecutors", "1")
             //动态分区
-            .config("hive.exec.dynamic.partition", "true")
-            .config("hive.exec.dynamic.partition.mode", "nonstrict")
-            .config("hive.exec.max.dynamic.partitions", 20000)
+//            .config("hive.exec.dynamic.partition", "true")
+//            .config("hive.exec.dynamic.partition.mode", "nonstrict")
+//            .config("hive.exec.max.dynamic.partitions", 20000)
             //调度模式
             .config("spark.scheduler.mode", "FAIR")
             .config("spark.executor.memoryOverhead", "512")
 //          .master("local[*]")
             .enableHiveSupport()
             .getOrCreate()
-        spark.sparkContext.setLogLevel("WARN")
+//        spark.sparkContext.setLogLevel("WARN")
         spark
     }
 
     def main(args: Array[String]): Unit = {
+        System.setProperty("java.security.krb5.conf", "/Users/huanghuanlai/dounine/kerberos/bd/krb5.conf")
+
         val interpreter = new SparkInterpreter()
         val sparkConf = interpreter.start()
         val actorConf = AkkaUtils.getConfig(ZkUtils.getZkClient(PropsUtils.get("zkServers")))
