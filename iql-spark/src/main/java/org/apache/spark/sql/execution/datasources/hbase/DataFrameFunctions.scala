@@ -4,13 +4,15 @@ import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hbase.{HBaseConfiguration, KeyValue, TableName}
 import org.apache.hadoop.hbase.client.{ConnectionFactory, HTable, Put, Result}
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable
-import org.apache.hadoop.hbase.mapreduce.{HFileOutputFormat2, LoadIncrementalHFiles, TableOutputFormat}
+import org.apache.hadoop.hbase.mapreduce.{HFileOutputFormat2, TableOutputFormat}
+import org.apache.hadoop.hbase.tool.LoadIncrementalHFiles
 import org.apache.hadoop.mapred.JobConf
 import org.apache.hadoop.mapreduce.Job
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.util.SerializableConfiguration
 import org.json4s.DefaultFormats
+
 import scala.collection.immutable.HashMap
 
 class DataFrameFunctions(data: DataFrame) extends Logging with Serializable {
@@ -90,8 +92,12 @@ class DataFrameFunctions(data: DataFrame) extends Logging with Serializable {
         rdd.flatMap(convertToPut_bulkload)
           .saveAsNewAPIHadoopFile(tmpPath, classOf[ImmutableBytesWritable], classOf[KeyValue], classOf[HFileOutputFormat2], job.getConfiguration)
 
-        val bulkLoader: LoadIncrementalHFiles = new LoadIncrementalHFiles(hbaseConf)
-        bulkLoader.doBulkLoad(new Path(tmpPath), new HTable(hbaseConf, tableName))
+        val conn = ConnectionFactory.createConnection(hbaseConf)
+        val table = conn.getTable(TableName.valueOf(tableName))
+        val regionLocator = conn.getRegionLocator(TableName.valueOf(tableName))
+        val bulkLoader = new LoadIncrementalHFiles(hbaseConf)
+        bulkLoader.doBulkLoad(new Path(tmpPath), conn.getAdmin, table, regionLocator)
+
 
       case "false" =>
         def convertToPut(row: Row) = {
