@@ -20,6 +20,7 @@ import org.json4s.jackson.Serialization
 import scala.collection.JavaConversions._
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.ArrayBuffer
+import org.apache.spark.util.Utils
 
 class SparkSqlContextFunctions(@transient val spark: SparkSession) extends Serializable {
 
@@ -40,18 +41,19 @@ class SparkSqlContextFunctions(@transient val spark: SparkSession) extends Seria
       val hc = HBaseConfiguration.create()
       hc.set("hbase.zookeeper.quorum", zkUrl.getOrElse("localhost:2181"))
       hc.set(TableInputFormat.INPUT_TABLE, table)
-      hc.addResource(new FileInputStream(new File("/Users/huanghuanlai/dounine/kerberos/bd/keytabs/hbase-site.xml")))
+
+      options.foreach(p => {
+        if(p._1.startsWith("conf.xml")){
+          hc.addResource(new FileInputStream(new File(p._2)))
+        }
+      })
 
       val auth = options.get("hbase.security.authentication")
 
       if (auth.nonEmpty) {
-        if ("kerberos".equals(auth.get)) {
-          hc.set("hadoop.security.authentication", "kerberos")
-        }
+        hc.set("hadoop.security.authentication", auth.get)
       }
-      if (options.contains("java.security.krb5.conf")) {
-        System.setProperty("java.security.krb5.conf", options.getOrElse("java.security.krb5.conf", "/etc/krb5.conf"))
-      }
+      System.setProperty("java.security.krb5.conf", options.getOrElse("java.security.krb5.conf", "/etc/krb5.conf"))
 
       if (options.contains(HBASE_TABLE_SCHEMA)) {
         var str = ArrayBuffer[String]()
@@ -92,9 +94,8 @@ class SparkSqlContextFunctions(@transient val spark: SparkSession) extends Seria
       }
     }
 
-    val inputFormatClass = if ("org.apache.spark.sql.execution.datasources.hbase.CustomTableInputFormat".equals(hbaseConf.get("hbase.tableinputformat"))) {
-      classOf[CustomTableInputFormat]
-    } else classOf[TableInputFormat]
+    val inputFormatName = hbaseConf.get("hbase.tableinputformat","org.apache.hadoop.hbase.mapreduce.TableInputFormat")
+    val inputFormatClass = Utils.getContextOrSparkClassLoader.loadClass(inputFormatName).newInstance().asInstanceOf[TableInputFormat]
 
     Option(hbaseConf.get(SPARK_TABLE_SCHEMA)) match {
       case Some(s) =>
@@ -125,13 +126,13 @@ class SparkSqlContextFunctions(@transient val spark: SparkSession) extends Seria
           spark.createDataFrame(hbaseRDD, schema)
         } else {
 
-          val hBaseRDD = spark.sparkContext.newAPIHadoopRDD(hbaseConf, inputFormatClass, classOf[ImmutableBytesWritable], classOf[Result])
+          val hBaseRDD = spark.sparkContext.newAPIHadoopRDD(hbaseConf, inputFormatClass.getClass, classOf[ImmutableBytesWritable], classOf[Result])
             .map { case (_, result) => Row.fromSeq(setters.map(r => r.apply(result)).toSeq) }
           spark.createDataFrame(hBaseRDD, schema)
         }
 
       case None =>
-        val hBaseRDD = spark.sparkContext.newAPIHadoopRDD(hbaseConf, inputFormatClass, classOf[ImmutableBytesWritable], classOf[Result])
+        val hBaseRDD = spark.sparkContext.newAPIHadoopRDD(hbaseConf, inputFormatClass.getClass, classOf[ImmutableBytesWritable], classOf[Result])
           .map { line =>
             val rowKey = Bytes.toString(line._2.getRow)
 

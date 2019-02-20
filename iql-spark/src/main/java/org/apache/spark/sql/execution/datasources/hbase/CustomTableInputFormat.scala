@@ -64,6 +64,7 @@ class CustomTableInputFormat extends TableInputFormat {
 
   def init(context: JobContext): Unit = {
     val conf = context.getConfiguration
+    System.setProperty("java.security.krb5.conf", conf.get("java.security.krb5.conf"))
     val tableName: TableName = TableName.valueOf(conf.get(TableInputFormat.INPUT_TABLE))
 
     if ("kerberos".equals(conf.get("hbase.security.authentication"))) {
@@ -77,10 +78,10 @@ class CustomTableInputFormat extends TableInputFormat {
 
 object oo {
   def main(args: Array[String]): Unit = {
-    System.setProperty("java.security.krb5.conf", "/Users/huanghuanlai/dounine/kerberos/bd/krb5.conf")
+    System.setProperty("java.security.krb5.conf", "/Users/huanghuanlai/dounine/kerberos/dev/krb5.conf")
     System.setProperty("sun.security.krb5.debug", "false")
     val conf = HBaseConfiguration.create()
-    conf.addResource(new FileInputStream(new File("/Users/huanghuanlai/dounine/kerberos/bd/keytabs/hbase-site.xml")))
+    conf.addResource(new FileInputStream(new File("/Users/huanghuanlai/dounine/kerberos/dev/keytabs/hbase-site.xml")))
     conf.set("hadoop.security.authentication", "kerberos")
 
     UserGroupInformation.setConfiguration(conf)

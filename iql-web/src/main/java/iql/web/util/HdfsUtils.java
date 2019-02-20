@@ -304,7 +304,7 @@ public class HdfsUtils {
             try {
                 Configuration conf = new Configuration();
                 conf.setBoolean("fs.hdfs.impl.disable.cache", true);
-                conf.set("fs.hdfs.impl", org.apache.hadoop.hdfs.DistributedFileSystem.class.getName());
+                conf.set("fs.hdfs.impl", LocalFileSystem.class.getName());
                 fileSystem = FileSystem.get(URI.create(hdfsUri),conf);
             } catch (IOException e) {
                 e.printStackTrace();
